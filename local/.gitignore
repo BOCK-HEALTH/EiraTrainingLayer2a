@@ -14,3 +14,5 @@ vosk-model-en-in-0.5.zip
 vosk-model-en-us-0.22.zip
 DIY Perks.txt
 youtube_video_links.txt
+uploads/
+__pycache__
