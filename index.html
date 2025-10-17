@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eira Dataset Visualizer</title>
+    <link rel="stylesheet" href="style.css">
+    <script defer src="app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Upload Section for YouTube Links TXT -->
+        <div class="upload-section" style="background:#f7fafd;border-radius:12px;padding:28px 24px;margin-bottom:32px;box-shadow:0 2px 8px rgba(44,62,80,0.07);">
+            <h2 style="color:#3a7bd5;margin-top:0;margin-bottom:18px;">Batch Upload YouTube Links</h2>
+            <form id="upload-form" style="display:flex;flex-wrap:wrap;align-items:center;gap:16px;">
+                <label for="upload-file" style="font-weight:500;color:#2d3a4b;">TXT File:</label>
+                <input type="file" id="upload-file" name="upload-file" accept=".txt" required style="padding:8px 12px;border-radius:6px;border:1px solid #bcdffb;">
+                <button type="submit" style="padding:8px 24px;border:none;border-radius:6px;background:linear-gradient(90deg,#3a7bd5 0%,#00d2ff 100%);color:#fff;font-size:1rem;cursor:pointer;box-shadow:0 2px 6px rgba(44,62,80,0.09);transition:background 0.2s;">Upload & Process</button>
+                <span id="upload-status" style="margin-left:12px;color:#3a7bd5;font-weight:500;"></span>
+            </form>
+            <p style="margin-top:12px;color:#444;font-size:0.98rem;">Upload a <b>.txt</b> file containing YouTube video URLs (one per line). The system will automatically process each link and store all extracted files in the main bucket.</p>
+        </div>
+        <!-- Existing Dataset Manager -->
+        <h1>Eira Dataset Visualizer</h1>
+        <div class="datasets">
+            <div class="dataset-card audio">
+                <h2>Audio Dataset</h2>
+                <p>Main Bucket: <span>eira1-general-dataset</span></p>
+                <p>Sub Bucket: <span>eira1-a2a-ds</span></p>
+                <p>Prefix: <span>audio/</span></p>
+                <button class="fetch-btn" data-type="audio">Fetch Audio Dataset</button>
+                <div class="fetch-status" id="status-audio"></div>
+            </div>
+            <div class="dataset-card video">
+                <h2>Video Dataset</h2>
+                <p>Main Bucket: <span>eira1-general-dataset</span></p>
+                <p>Sub Bucket: <span>eira1-a2v-ds</span></p>
+                <p>Prefix: <span>videos/</span></p>
+                <button class="fetch-btn" data-type="video">Fetch Video Dataset</button>
+                <div class="fetch-status" id="status-video"></div>
+            </div>
+            <div class="dataset-card transcript">
+                <h2>Transcript Dataset</h2>
+                <p>Main Bucket: <span>eira1-general-dataset</span></p>
+                <p>Sub Bucket: <span>eira1-a2t-ds</span></p>
+                <p>Prefix: <span>transcripts/</span></p>
+                <button class="fetch-btn" data-type="transcript">Fetch Transcript Dataset</button>
+                <div class="fetch-status" id="status-transcript"></div>
+            </div>
+            <div class="dataset-card pairs">
+                <h2>Pairs[Image + Audio] Dataset</h2>
+                <p>Main Bucket: <span>eira1-general-dataset</span></p>
+                <p>Sub Bucket: <span>eira1-a2i-ds</span></p>
+                <p>Prefix: <span>pairs/</span></p>
+                <button class="fetch-btn" data-type="pairs">Fetch Pairs Dataset</button>
+                <div class="fetch-status" id="status-pairs"></div>
+            </div>
+        </div>
+        <!-- Status/Progress Section -->
+        <div id="status-section" style="margin:32px 0;padding:24px;background:#f7faff;border-radius:8px;box-shadow:0 2px 8px #e3eafc;max-width:600px">
+            <h2 style="color:#3a7bd5;margin-bottom:12px">Batch Extraction Progress</h2>
+            <div id="progress-bar" style="height:18px;background:#e3eafc;border-radius:9px;overflow:hidden;margin-bottom:12px">
+                <div id="progress-fill" style="height:100%;width:0%;background:#3a7bd5;transition:width 0.5s"></div>
+            </div>
+            <div id="progress-text" style="font-weight:500;color:#3a7bd5;margin-bottom:12px">Waiting for extraction...</div>
+            <div id="log-list" style="font-size:15px;color:#222;max-height:180px;overflow-y:auto;background:#fff;border-radius:6px;padding:12px;border:1px solid #e3eafc"></div>
+        </div>
+    </div>
+</body>
+</html>

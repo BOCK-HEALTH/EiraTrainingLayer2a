@@ -16,6 +16,11 @@ app = Flask(__name__)
 
 # ========== Processing Status Tracking ==========
 processing_status = {}
+processing_status = {
+    'total': 0,
+    'current': 0,
+    'logs': []
+}
 
 # ========== AWS S3 Upload ==========
 def upload_to_s3(file_path, bucket_name, s3_key):
@@ -96,48 +101,73 @@ def remove_local_file(path):
 
 # ========== Full Pipeline ==========
 def run_pipeline_for_url(youtube_url, bucket_name='eira1-general-dataset'):
-    print(f"\n[+] Starting pipeline for: {youtube_url}")
+    msg = f"[+] Starting pipeline for: {youtube_url}"
+    print(f"\n{msg}")
+    processing_status['logs'].append(msg)
 
     timestamp = time.strftime("%Y%m%d-%H%M%S")
     unique_id = hashlib.md5(youtube_url.encode()).hexdigest()[:6] + "-" + timestamp
-
     video_file = 'video.mp4'
     audio_file = 'audio.wav'
     transcript_file = 'transcript.txt'
     pairs_dir = f'fps3_filter_media_extraction_{unique_id}'
 
     # Step 1
-    print("[*] Step 1: Downloading video...")
+    stage_msg = "[*] Step 1: Downloading video..."
+    print(stage_msg)
+    processing_status['logs'].append(stage_msg)
     download_youtube_video(youtube_url, video_file)
-    print("[✓] Video downloaded")
+    done_msg = "[✓] Video downloaded"
+    print(done_msg)
+    processing_status['logs'].append(done_msg)
 
     # Step 2
-    print("[*] Step 2: Extracting audio...")
+    stage_msg = "[*] Step 2: Extracting audio..."
+    print(stage_msg)
+    processing_status['logs'].append(stage_msg)
     extract_audio(video_file, audio_file)
-    print("[✓] Audio extracted")
+    done_msg = "[✓] Audio extracted"
+    print(done_msg)
+    processing_status['logs'].append(done_msg)
 
     # Step 3
-    print("[*] Step 3: Uploading video to S3...")
+    stage_msg = "[*] Step 3: Uploading video to S3..."
+    print(stage_msg)
+    processing_status['logs'].append(stage_msg)
     upload_to_s3(video_file, bucket_name, f'videos/{unique_id}/{video_file}')
-    print("[✓] Video uploaded")
+    done_msg = "[✓] Video uploaded"
+    print(done_msg)
+    processing_status['logs'].append(done_msg)
 
-    print("[*] Step 3: Uploading audio to S3...")
+    stage_msg = "[*] Step 3: Uploading audio to S3..."
+    print(stage_msg)
+    processing_status['logs'].append(stage_msg)
     upload_to_s3(audio_file, bucket_name, f'audio/{unique_id}/{audio_file}')
-    print("[✓] Audio uploaded")
+    done_msg = "[✓] Audio uploaded"
+    print(done_msg)
+    processing_status['logs'].append(done_msg)
 
     # Step 4: Extract frames and audio pairs
-    print("[*] Step 4: Extracting frames and audio pairs...")
+    stage_msg = "[*] Step 4: Extracting frames and audio pairs..."
+    print(stage_msg)
+    processing_status['logs'].append(stage_msg)
     pairs = extract_fps_frames_and_audio_chunks(video_file, pairs_dir, fps=3)
-    print(f"[✓] Extracted {len(pairs)} frame & audio pairs.")
+    done_msg = f"[✓] Extracted {len(pairs)} frame & audio pairs."
+    print(done_msg)
+    processing_status['logs'].append(done_msg)
 
     # Step 5: Upload pairs to S3
-    print("[*] Step 5: Uploading frame/audio pairs to S3...")
+    stage_msg = "[*] Step 5: Uploading frame/audio pairs to S3..."
+    print(stage_msg)
+    processing_status['logs'].append(stage_msg)
     for frame_path, audio_path in pairs:
         frame_key = f'pairs/{unique_id}/{os.path.basename(frame_path)}'
         audio_key = f'pairs/{unique_id}/{os.path.basename(audio_path)}'
         upload_to_s3(frame_path, bucket_name, frame_key)
         upload_to_s3(audio_path, bucket_name, audio_key)
-    print("[✓] Frame/audio pairs uploaded.")
+    done_msg = "[✓] Frame/audio pairs uploaded."
+    print(done_msg)
+    processing_status['logs'].append(done_msg)
 
     # Cleanup pairs dir
     for frame_path, audio_path in pairs:
@@ -148,20 +178,30 @@ def run_pipeline_for_url(youtube_url, bucket_name='eira1-general-dataset'):
             os.rmdir(pairs_dir)
         except Exception:
             pass
-
     remove_local_file(video_file)
 
     # Step 6
-    print("[*] Step 6: Transcribing audio...")
+    stage_msg = "[*] Step 6: Transcribing audio..."
+    print(stage_msg)
+    processing_status['logs'].append(stage_msg)
     transcript = transcribe_audio(audio_file)
-    print("[✓] Transcript obtained")
+    done_msg = "[✓] Transcript obtained"
+    print(done_msg)
+    processing_status['logs'].append(done_msg)
 
     # Step 7
+    stage_msg = "[*] Step 7: Uploading transcript to S3..."
+    print(stage_msg)
+    processing_status['logs'].append(stage_msg)
     with open(transcript_file, 'w') as f:
         f.write(transcript)
     upload_to_s3(transcript_file, bucket_name, f'transcripts/{unique_id}/{transcript_file}')
     remove_local_file(audio_file)
     remove_local_file(transcript_file)
+    done_msg = f"[✓] Finished processing {youtube_url}"
+    print(f"\nTRANSCRIPT PREVIEW:\n", transcript[:500], "...\n")
+    print(done_msg)
+    processing_status['logs'].append(done_msg)
 
     print("\nTRANSCRIPT PREVIEW:\n", transcript[:500], "...\n")
     print(f"[✓] Finished processing {youtube_url}")
@@ -219,13 +259,32 @@ def extract_fps_frames_and_audio_chunks(video_path, output_dir, fps=3):
 def process_links_from_file(txt_file, bucket_name='eira1-general-dataset'):
     with open(txt_file, 'r') as f:
         links = [line.strip() for line in f if line.strip()]
-    print(f"Found {len(links)} links in {txt_file}. Starting batch processing...")
+    processing_status['total'] = len(links)
+    processing_status['current'] = 0
+    processing_status['logs'] = [f"Found {len(links)} links. Starting batch processing..."]
     for idx, link in enumerate(links):
-        print(f"\nProcessing link {idx+1}/{len(links)}: {link}")
+        msg = f"Processing link {idx+1}/{len(links)}: {link}"
+        print(f"\n{msg}")
+        processing_status['current'] = idx+1
+        processing_status['logs'].append(msg)
         try:
             run_pipeline_for_url(link, bucket_name)
+            processing_status['logs'].append(f"[✓] Finished processing {link}")
         except Exception as e:
-            print(f"[!] Error processing {link}: {e}")
+            err_msg = f"[!] Error processing {link}: {e}"
+            print(err_msg)
+            processing_status['logs'].append(err_msg)
+
+app = Flask(__name__)
+
+# ========== Status Endpoint ==========
+@app.route('/status', methods=['GET'])
+def get_status():
+    return jsonify({
+        'total': processing_status.get('total', 0),
+        'current': processing_status.get('current', 0),
+        'logs': processing_status.get('logs', [])
+    })
 
 
 if __name__ == "__main__":
