@@ -1,0 +1,9 @@
+flask
+vosk
+boto3
+transformers
+ffmpeg-python
+google-api-python-client
+python-dotenv
+requests
+urllib3
