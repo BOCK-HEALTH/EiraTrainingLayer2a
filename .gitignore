@@ -1,0 +1,16 @@
+YQA_key.pem
+cookies.txt
+chv
+.env
+terraform.tfstate
+in_en_model
+fps3_filter_media_extraction
+model
+terraform/envs/dev/.terraform.lock.hcl
+terraform/envs/dev/terraform.tfstate
+terraform/envs/dev/terraform.tfstate.backup
+terraform/envs/dev/.terraform
+vosk-model-en-in-0.5.zip
+vosk-model-en-us-0.22.zip
+DIY Perks.txt
+youtube_video_links.txt
