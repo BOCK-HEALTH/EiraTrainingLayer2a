@@ -6,65 +6,214 @@
     <title>Eira Dataset Visualizer</title>
     <link rel="stylesheet" href="style.css">
     <script defer src="app.js"></script>
+    <style>
+      body {
+        background: #f6f8fa;
+        font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+        margin: 0;
+        min-height: 100vh;
+        color: #222;
+      }
+      .container {
+        max-width: 1100px;
+        margin: 40px auto 0 auto;
+        padding: 32px 24px 48px 24px;
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.07);
+      }
+      .section {
+        margin-bottom: 40px;
+        padding: 28px 32px;
+        background: #f3f6fa;
+        border-radius: 14px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        border: 1.5px solid #e3eafc;
+      }
+      .section h2 {
+        color: #2563eb;
+        font-size: 1.6rem;
+        margin-bottom: 18px;
+        letter-spacing: 1px;
+        font-weight: 700;
+      }
+      .upload-form-modern {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+        margin-bottom: 0;
+      }
+      .upload-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 0;
+      }
+      .upload-label {
+        font-weight: 500;
+        color: #222;
+        font-size: 1.08rem;
+        margin-right: 8px;
+      }
+      .upload-input {
+        background: #fff;
+        color: #222;
+        border: 1.5px solid #b6c6e3;
+        border-radius: 6px;
+        padding: 7px 12px;
+        font-size: 1rem;
+        transition: border 0.2s;
+        box-shadow: 0 1px 4px #e3eafc44;
+      }
+      .upload-input:focus {
+        border: 1.5px solid #2563eb;
+        outline: none;
+      }
+      .upload-btn {
+        background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 22px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s, box-shadow 0.2s;
+        box-shadow: 0 2px 8px #2563eb22;
+      }
+      .upload-btn:hover {
+        background: linear-gradient(90deg, #60a5fa 0%, #2563eb 100%);
+        box-shadow: 0 4px 16px #2563eb33;
+      }
+      .upload-desc {
+        color: #5a6473;
+        font-size: 0.98rem;
+        margin-top: 2px;
+      }
+      .dataset-title {
+        text-align: center;
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #2563eb;
+        margin: 40px 0 32px 0;
+        letter-spacing: 2px;
+        text-shadow: 0 2px 8px #2563eb11;
+      }
+      .dataset-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 32px;
+        margin-bottom: 32px;
+      }
+      .dataset-card {
+        background: #f8fafc;
+        border-radius: 14px;
+        box-shadow: 0 4px 18px #2563eb11;
+        padding: 32px 24px 28px 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        transition: transform 0.15s, box-shadow 0.15s;
+        border: 1.5px solid #e3eafc;
+      }
+      .dataset-card:hover {
+        transform: translateY(-6px) scale(1.03);
+        box-shadow: 0 8px 32px #2563eb22;
+      }
+      .dataset-card h3 {
+        color: #222;
+        font-size: 1.3rem;
+        margin-bottom: 10px;
+        letter-spacing: 1px;
+      }
+      .dataset-card .bucket {
+        color: #2563eb;
+        font-weight: 600;
+        font-size: 1.05rem;
+        margin-bottom: 2px;
+      }
+      .dataset-card .prefix {
+        color: #5a6473;
+        font-size: 0.98rem;
+        margin-bottom: 10px;
+      }
+      .dataset-card button {
+        background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 22px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 10px;
+        transition: background 0.2s;
+        box-shadow: 0 2px 8px #2563eb22;
+      }
+      .dataset-card button:hover {
+        background: linear-gradient(90deg, #60a5fa 0%, #2563eb 100%);
+      }
+      @media (max-width: 700px) {
+        .container, .section {
+          padding: 12px 4vw;
+        }
+        .dataset-title {
+          font-size: 1.3rem;
+        }
+        .dataset-grid {
+          grid-template-columns: 1fr;
+          gap: 18px;
+        }
+      }
+    </style>
 </head>
 <body>
     <div class="container">
-        <!-- Upload Section for YouTube Links TXT -->
-        <div class="upload-section" style="background:#f7fafd;border-radius:12px;padding:28px 24px;margin-bottom:32px;box-shadow:0 2px 8px rgba(44,62,80,0.07);">
-            <h2 style="color:#3a7bd5;margin-top:0;margin-bottom:18px;">Batch Upload YouTube Links</h2>
-            <form id="upload-form" style="display:flex;flex-wrap:wrap;align-items:center;gap:16px;">
-                <label for="upload-file" style="font-weight:500;color:#2d3a4b;">TXT File:</label>
-                <input type="file" id="upload-file" name="upload-file" accept=".txt" required style="padding:8px 12px;border-radius:6px;border:1px solid #bcdffb;">
-                <button type="submit" style="padding:8px 24px;border:none;border-radius:6px;background:linear-gradient(90deg,#3a7bd5 0%,#00d2ff 100%);color:#fff;font-size:1rem;cursor:pointer;box-shadow:0 2px 6px rgba(44,62,80,0.09);transition:background 0.2s;">Upload & Process</button>
-                <span id="upload-status" style="margin-left:12px;color:#3a7bd5;font-weight:500;"></span>
-            </form>
-            <p style="margin-top:12px;color:#444;font-size:0.98rem;">Upload a <b>.txt</b> file containing YouTube video URLs (one per line). The system will automatically process each link and store all extracted files in the main bucket.</p>
+      <div class="section">
+        <form id="upload-form" class="upload-form-modern">
+          <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <svg width="32" height="32" fill="none" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#2563eb"/><path d="M10.5 13.5v5a2 2 0 002 2h7a2 2 0 002-2v-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 20v-8" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.5 10.5h5a2 2 0 012 2v7a2 2 0 01-2 2h-5a2 2 0 01-2-2v-7a2 2 0 012-2z" stroke="#fff" stroke-width="2"/></svg>
+              <span style="font-size:1.35rem;font-weight:700;color:#2563eb;letter-spacing:1px;">Batch Upload YouTube Links</span>
+            </div>
+            <button type="submit" class="upload-btn">Upload &amp; Process</button>
+          </div>
+          <div class="upload-row" style="margin-top:18px;">
+            <label for="upload-file" class="upload-label">TXT File:</label>
+            <input type="file" id="upload-file" class="upload-input" accept=".txt" required />
+            <div id="upload-status" style="margin-left:18px;font-size:1.02rem;"></div>
+          </div>
+          <div class="upload-desc">
+            Upload a <b>.txt</b> file containing YouTube video URLs (one per line). The system will automatically process each link and store all extracted files in the main bucket.
+          </div>
+        </form>
+      </div>
+
+      <div class="dataset-title">Eira Dataset Visualizer</div>
+      <div class="dataset-grid">
+        <div class="dataset-card">
+          <h3>Audio Dataset</h3>
+          <div class="bucket">Main Bucket: <span style="color:#222">eira1-general-datasets</span></div>
+          <div class="bucket">Sub Bucket: <span style="color:#222">eira1-audio-datasets</span></div>
+          <div class="prefix">Prefix: <b>audio/</b></div>
+          <button onclick="fetchAudioDataset()">Fetch Audio Dataset</button>
         </div>
-        <!-- Existing Dataset Manager -->
-        <h1>Eira Dataset Visualizer</h1>
-        <div class="datasets">
-            <div class="dataset-card audio">
-                <h2>Audio Dataset</h2>
-                <p>Main Bucket: <span>eira1-general-dataset</span></p>
-                <p>Sub Bucket: <span>eira1-a2a-ds</span></p>
-                <p>Prefix: <span>audio/</span></p>
-                <button class="fetch-btn" data-type="audio">Fetch Audio Dataset</button>
-                <div class="fetch-status" id="status-audio"></div>
-            </div>
-            <div class="dataset-card video">
-                <h2>Video Dataset</h2>
-                <p>Main Bucket: <span>eira1-general-dataset</span></p>
-                <p>Sub Bucket: <span>eira1-a2v-ds</span></p>
-                <p>Prefix: <span>videos/</span></p>
-                <button class="fetch-btn" data-type="video">Fetch Video Dataset</button>
-                <div class="fetch-status" id="status-video"></div>
-            </div>
-            <div class="dataset-card transcript">
-                <h2>Transcript Dataset</h2>
-                <p>Main Bucket: <span>eira1-general-dataset</span></p>
-                <p>Sub Bucket: <span>eira1-a2t-ds</span></p>
-                <p>Prefix: <span>transcripts/</span></p>
-                <button class="fetch-btn" data-type="transcript">Fetch Transcript Dataset</button>
-                <div class="fetch-status" id="status-transcript"></div>
-            </div>
-            <div class="dataset-card pairs">
-                <h2>Pairs[Image + Audio] Dataset</h2>
-                <p>Main Bucket: <span>eira1-general-dataset</span></p>
-                <p>Sub Bucket: <span>eira1-a2i-ds</span></p>
-                <p>Prefix: <span>pairs/</span></p>
-                <button class="fetch-btn" data-type="pairs">Fetch Pairs Dataset</button>
-                <div class="fetch-status" id="status-pairs"></div>
-            </div>
+        <div class="dataset-card">
+          <h3>Video Dataset</h3>
+          <div class="bucket">Main Bucket: <span style="color:#222">eira1-general-datasets</span></div>
+          <div class="bucket">Sub Bucket: <span style="color:#222">eira1-video-datasets</span></div>
+          <div class="prefix">Prefix: <b>videos/</b></div>
+          <button onclick="fetchVideoDataset()">Fetch Video Dataset</button>
         </div>
-        <!-- Status/Progress Section -->
-        <div id="status-section" style="margin:32px 0;padding:24px;background:#f7faff;border-radius:8px;box-shadow:0 2px 8px #e3eafc;max-width:600px">
-            <h2 style="color:#3a7bd5;margin-bottom:12px">Batch Extraction Progress</h2>
-            <div id="progress-bar" style="height:18px;background:#e3eafc;border-radius:9px;overflow:hidden;margin-bottom:12px">
-                <div id="progress-fill" style="height:100%;width:0%;background:#3a7bd5;transition:width 0.5s"></div>
-            </div>
-            <div id="progress-text" style="font-weight:500;color:#3a7bd5;margin-bottom:12px">Waiting for extraction...</div>
-            <div id="log-list" style="font-size:15px;color:#222;max-height:180px;overflow-y:auto;background:#fff;border-radius:6px;padding:12px;border:1px solid #e3eafc"></div>
+        <div class="dataset-card">
+          <h3>Segmented Images + Transcripts</h3>
+          <div class="bucket">Main Bucket: <span style="color:#222">eira1-general-datasets</span></div>
+          <div class="bucket">Sub Bucket: <span style="color:#222">eira1-seg.images-seg.transcripts-datasets</span></div>
+          <div class="prefix">Folders: <b>chunked_images/ + chunked_transcripts/</b></div>
+          <button onclick="fetchImagesTranscriptsDataset()">Fetch Images + Transcripts</button>
         </div>
+      </div>
     </div>
 </body>
 </html>

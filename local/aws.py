@@ -100,7 +100,7 @@ def remove_local_file(path):
         print(f"[!] File not found for deletion: {path}")
 
 # ========== Full Pipeline ==========
-def run_pipeline_for_url(youtube_url, bucket_name='eira1-general-dataset'):
+def run_pipeline_for_url(youtube_url, bucket_name='eira1-general-datasets'):
     msg = f"[+] Starting pipeline for: {youtube_url}"
     print(f"\n{msg}")
     processing_status['logs'].append(msg)
@@ -134,7 +134,7 @@ def run_pipeline_for_url(youtube_url, bucket_name='eira1-general-dataset'):
     stage_msg = "[*] Step 3: Uploading video to S3..."
     print(stage_msg)
     processing_status['logs'].append(stage_msg)
-    upload_to_s3(video_file, bucket_name, f'videos/{unique_id}/{video_file}')
+    upload_to_s3(video_file, bucket_name, f'video/{unique_id}/{video_file}')
     done_msg = "[✓] Video uploaded"
     print(done_msg)
     processing_status['logs'].append(done_msg)
@@ -147,32 +147,35 @@ def run_pipeline_for_url(youtube_url, bucket_name='eira1-general-dataset'):
     print(done_msg)
     processing_status['logs'].append(done_msg)
 
-    # Step 4: Extract frames and audio pairs
-    stage_msg = "[*] Step 4: Extracting frames and audio pairs..."
+    # Step 4: Extract frames, audio, and transcripts
+    stage_msg = "[*] Step 4: Extracting frames, audio chunks, and transcripts..."
     print(stage_msg)
     processing_status['logs'].append(stage_msg)
     pairs = extract_fps_frames_and_audio_chunks(video_file, pairs_dir, fps=3)
-    done_msg = f"[✓] Extracted {len(pairs)} frame & audio pairs."
+    done_msg = f"[✓] Extracted {len(pairs)} frame, audio & transcript triplets."
     print(done_msg)
     processing_status['logs'].append(done_msg)
 
-    # Step 5: Upload pairs to S3
-    stage_msg = "[*] Step 5: Uploading frame/audio pairs to S3..."
+    # Step 5: Upload triplets to S3
+    stage_msg = "[*] Step 5: Uploading frame/audio/transcript triplets to S3..."
     print(stage_msg)
     processing_status['logs'].append(stage_msg)
-    for frame_path, audio_path in pairs:
-        frame_key = f'pairs/{unique_id}/{os.path.basename(frame_path)}'
-        audio_key = f'pairs/{unique_id}/{os.path.basename(audio_path)}'
+    for frame_path, audio_path, transcript_path in pairs:
+        frame_key = f'pairs_of_img_aud_trans/{unique_id}/chunked_images/{os.path.basename(frame_path)}'
+        audio_key = f'pairs_of_img_aud_trans/{unique_id}/chunked_audios/{os.path.basename(audio_path)}'
+        transcript_key = f'pairs_of_img_aud_trans/{unique_id}/chunked_transcripts/{os.path.basename(transcript_path)}'
         upload_to_s3(frame_path, bucket_name, frame_key)
         upload_to_s3(audio_path, bucket_name, audio_key)
-    done_msg = "[✓] Frame/audio pairs uploaded."
+        upload_to_s3(transcript_path, bucket_name, transcript_key)
+    done_msg = "[✓] Frame/audio/transcript triplets uploaded."
     print(done_msg)
     processing_status['logs'].append(done_msg)
 
     # Cleanup pairs dir
-    for frame_path, audio_path in pairs:
+    for frame_path, audio_path, transcript_path in pairs:
         remove_local_file(frame_path)
         remove_local_file(audio_path)
+        remove_local_file(transcript_path)
     if os.path.exists(pairs_dir):
         try:
             os.rmdir(pairs_dir)
@@ -195,7 +198,7 @@ def run_pipeline_for_url(youtube_url, bucket_name='eira1-general-dataset'):
     processing_status['logs'].append(stage_msg)
     with open(transcript_file, 'w') as f:
         f.write(transcript)
-    upload_to_s3(transcript_file, bucket_name, f'transcripts/{unique_id}/{transcript_file}')
+    upload_to_s3(transcript_file, bucket_name, f'transcript/{unique_id}/{transcript_file}')
     remove_local_file(audio_file)
     remove_local_file(transcript_file)
     done_msg = f"[✓] Finished processing {youtube_url}"
@@ -241,6 +244,13 @@ def extract_fps_frames_and_audio_chunks(video_path, output_dir, fps=3):
         os.rename(old_path, new_path)
         new_frame_files.append((ts, new_path))
 
+    # Load Vosk model once for all transcriptions
+    if not os.path.exists("model"):
+        print("[!] Vosk model not found, skipping chunk transcriptions")
+        model = None
+    else:
+        model = Model("model")
+
     pairs = []
     for ts, frame_path in new_frame_files:
         audio_path = os.path.join(output_dir, f"frame_{ts:010.3f}.wav")
@@ -251,12 +261,51 @@ def extract_fps_frames_and_audio_chunks(video_path, output_dir, fps=3):
             "-vn", audio_path,
             "-hide_banner", "-loglevel", "error"
         ], check=True)
-        pairs.append((frame_path, audio_path))
+        
+        # Transcribe the audio chunk
+        transcript_path = os.path.join(output_dir, f"frame_{ts:010.3f}.txt")
+        if model:
+            chunk_transcript = transcribe_audio_chunk(audio_path, model)
+        else:
+            chunk_transcript = ""
+        
+        # Save transcript to file
+        with open(transcript_path, 'w') as f:
+            f.write(chunk_transcript)
+        
+        pairs.append((frame_path, audio_path, transcript_path))
     return pairs
 
 
+# ========== Transcribe Audio Chunk ==========
+def transcribe_audio_chunk(audio_path, model):
+    """Transcribe a small audio chunk using Vosk."""
+    try:
+        wf = wave.open(audio_path, "rb")
+        if wf.getnchannels() != 1 or wf.getsampwidth() != 2 or wf.getframerate() != 16000:
+            wf.close()
+            return ""
+
+        rec = KaldiRecognizer(model, wf.getframerate())
+        results = []
+        while True:
+            data = wf.readframes(4000)
+            if len(data) == 0:
+                break
+            if rec.AcceptWaveform(data):
+                results.append(json.loads(rec.Result()))
+        results.append(json.loads(rec.FinalResult()))
+        wf.close()
+
+        transcript = " ".join([res.get("text", "") for res in results])
+        return transcript
+    except Exception as e:
+        print(f"[!] Error transcribing chunk {audio_path}: {e}")
+        return ""
+
+
 # ========== Batch Processing from TXT File ==========
-def process_links_from_file(txt_file, bucket_name='eira1-general-dataset'):
+def process_links_from_file(txt_file, bucket_name='eira1-general-datasets'):
     with open(txt_file, 'r') as f:
         links = [line.strip() for line in f if line.strip()]
     processing_status['total'] = len(links)

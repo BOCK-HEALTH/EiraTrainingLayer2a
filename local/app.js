@@ -14,18 +14,6 @@ const datasets = {
     mainBucket: "eira1-general-dataset",
     subBucket: "eira1-a2v-ds",
     prefix: "videos/"
-  },
-  transcript: {
-    name: "Transcript Dataset",
-    mainBucket: "eira1-general-dataset",
-    subBucket: "eira1-a2t-ds",
-    prefix: "transcripts/"
-  },
-  pairs: {
-    name: "Pairs Dataset",
-    mainBucket: "eira1-general-dataset",
-    subBucket: "eira1-a2i-ds",
-    prefix: "pairs/"
   }
 };
 
@@ -159,3 +147,34 @@ function pollStatus() {
 }
 
 setInterval(pollStatus, 3000); // Poll every 3 seconds
+
+// Individual fetch functions for each dataset
+async function fetchAudioDataset() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Fetching...';
+  const result = await copyDatasetAPI('audio');
+  alert(result.replace(/<[^>]*>/g, '')); // Show result without HTML tags
+  btn.disabled = false;
+  btn.textContent = 'Fetch Audio Dataset';
+}
+
+async function fetchVideoDataset() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Fetching...';
+  const result = await copyDatasetAPI('video');
+  alert(result.replace(/<[^>]*>/g, ''));
+  btn.disabled = false;
+  btn.textContent = 'Fetch Video Dataset';
+}
+
+async function fetchImagesTranscriptsDataset() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Fetching...';
+  const result = await copyDatasetAPI('images-transcripts');
+  alert(result.replace(/<[^>]*>/g, ''));
+  btn.disabled = false;
+  btn.textContent = 'Fetch Images + Transcripts';
+}

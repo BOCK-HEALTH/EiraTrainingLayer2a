@@ -12,34 +12,30 @@ API_TOKEN = os.getenv('EIRA_API_TOKEN', 'changeme')
 # Dataset config
 DATASETS = {
     'audio': {
-        'main_bucket': 'eira1-general-dataset',
-        'sub_bucket': 'eira1-a2a-ds',
+        'main_bucket': 'eira1-general-datasets',
+        'sub_bucket': 'eira1-audio-datasets',
         'prefix': 'audio/'
     },
     'video': {
-        'main_bucket': 'eira1-general-dataset',
-        'sub_bucket': 'eira1-a2v-ds',
-        'prefix': 'videos/'
+        'main_bucket': 'eira1-general-datasets',
+        'sub_bucket': 'eira1-video-datasets',
+        'prefix': 'video/'
     },
-    'transcript': {
-        'main_bucket': 'eira1-general-dataset',
-        'sub_bucket': 'eira1-a2t-ds',
-        'prefix': 'transcripts/'
-    },
-    'pairs': {
-        'main_bucket': 'eira1-general-dataset',
-        'sub_bucket': 'eira1-a2i-ds',
-        'prefix': 'pairs/'
+    'images-transcripts': {
+        'main_bucket': 'eira1-general-datasets',
+        'sub_bucket': 'eira1-seg.images-seg.transcripts-datasets',
+        'prefixes': ['pairs_of_img_aud_trans/']  # Will filter for chunked_images and chunked_transcripts
     }
 }
 
 # Helper: check token
-@app.before_request
-def check_token():
-    if request.endpoint and request.endpoint.startswith('fetch_'):
-        token = request.headers.get('Authorization')
-        if token != f"Bearer {API_TOKEN}":
-            return jsonify({'error': 'Unauthorized'}), 401
+# Commented out for internal use - uncomment if you need API security
+# @app.before_request
+# def check_token():
+#     if request.endpoint and request.endpoint.startswith('fetch_'):
+#         token = request.headers.get('Authorization')
+#         if token != f"Bearer {API_TOKEN}":
+#             return jsonify({'error': 'Unauthorized'}), 401
 
 # Helper: copy objects from main to sub bucket
 
@@ -51,11 +47,37 @@ def copy_dataset(dataset_key):
     src_bucket = s3.Bucket(config['main_bucket'])
     dest_bucket = s3.Bucket(config['sub_bucket'])
     copied = []
-    for obj in src_bucket.objects.filter(Prefix=config['prefix']):
-        src_key = obj.key
-        copy_source = {'Bucket': config['main_bucket'], 'Key': src_key}
-        dest_bucket.Object(src_key).copy(copy_source)
-        copied.append(src_key)
+    
+    # Handle special case for images-transcripts dataset
+    if dataset_key == 'images-transcripts':
+        # Get all objects under pairs/ prefix
+        for obj in src_bucket.objects.filter(Prefix='pairs/'):
+            src_key = obj.key
+            # Only copy if path contains chunked_images or chunked_transcripts
+            if '/chunked_images/' in src_key or '/chunked_transcripts/' in src_key:
+                copy_source = {'Bucket': config['main_bucket'], 'Key': src_key}
+                # Remove 'pairs/' prefix from destination key
+                dest_key = src_key.replace('pairs/', '', 1)
+                dest_bucket.Object(dest_key).copy(copy_source)
+                copied.append(dest_key)
+    elif dataset_key in ['audio', 'video']:
+        # Remove prefix for audio and video datasets
+        prefix = config['prefix']
+        for obj in src_bucket.objects.filter(Prefix=prefix):
+            src_key = obj.key
+            copy_source = {'Bucket': config['main_bucket'], 'Key': src_key}
+            # Remove the prefix from destination key (e.g., 'audio/' or 'video/')
+            dest_key = src_key.replace(prefix, '', 1)
+            dest_bucket.Object(dest_key).copy(copy_source)
+            copied.append(dest_key)
+    else:
+        # Standard copy for other datasets (keep original structure)
+        for obj in src_bucket.objects.filter(Prefix=config['prefix']):
+            src_key = obj.key
+            copy_source = {'Bucket': config['main_bucket'], 'Key': src_key}
+            dest_bucket.Object(src_key).copy(copy_source)
+            copied.append(src_key)
+    
     return {'status': 'success', 'copied': copied}
 
 # API endpoints
